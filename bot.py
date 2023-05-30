@@ -1,28 +1,36 @@
-from siegeapi import Auth
+import discord
+from discord.ext import commands
+import siegeapi
 import asyncio
 import hikari
 import lightbulb
 import dotenv
 import os
-import siegeapi
 
 bot = lightbulb.BotApp(token=os.environ["TOKEN"])
 
+
+
 @bot.command
-@lightbulb.option("password", "das passwort für deinen Ubisoft Account. WICHTIG! das passwort wird nicht gespeichert!")
-@lightbulb.option("email", "Die Email von deinem Ubisoft Account.")
-@lightbulb.command("Login", "Logs you into your Ubisoft account and gives you your R6 rank automatically.")
+@lightbulb.option("username","the username of the rainbow six siege profile")
+@lightbulb.command("rank", "get yourself a nice new role :D")
 @lightbulb.implements(lightbulb.SlashCommand)
-async def auth(ctx: lightbulb.Context) -> None:
-    auth = Auth("email","password")
-    player = await auth.get_player(uid="")
+async def player_rank(ctx, username)-> None:
+    api = siegeapi.SiegeAPI()
+    player = api.get_player(username)
+    if player is not None:
+        rank = player.get_rank()
 
-    await player.load_ranked_v2()
-    print(f"Ranked Points: {player.ranked_profile.rank_points}")
-    print(f"Rank: {player.ranked_profile.rank}")
-    print(f"Max Rank Points: {player.ranked_profile.max_rank_points}")
-    print(f"Max Rank: {player.ranked_profile.max_rank}")
-    
-    if player.ranked_profile.rank ==  or  or 
+        # Rolle erstellen oder vorhandene Rolle abrufen
+        role = discord.utils.get(ctx.guild.roles, name=rank)
 
-    await auth.close()
+        if role is not None:
+            # Discord-Rolle dem Nutzer geben
+            await ctx.author.add_roles(role)
+            await ctx.send(f"Der Rang des Spielers {username} ist {rank}. Die Discord-Rolle wurde hinzugefügt.")
+        else:
+            await ctx.send("Die entsprechende Discord-Rolle wurde nicht gefunden.\n Melde dich bitte bei ApfelTeeSaft#7181")
+    else:
+        await ctx.send(f"Der Spieler {username} wurde nicht gefunden.")
+print("Bot is up and running!")
+bot.run()
