@@ -177,7 +177,7 @@ async def on_interaction_create(event: hikari.InteractionCreateEvent):
         if custom_id.startswith("update"):
             await event.interaction.create_initial_response(
                 hikari.ResponseType.MESSAGE_CREATE,
-                content="Um deinen Rang zu aktualisieren musst du erneut den /get-rank command ausführen",
+                content="Um deinen Rang zu aktualisieren öffne ein <#963132179813109790>",
                 flags=hikari.MessageFlag.EPHEMERAL
             )
 
