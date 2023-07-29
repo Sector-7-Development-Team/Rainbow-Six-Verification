@@ -1,18 +1,24 @@
-from env import token
+from env import token, def_mail, def_pw
 import hikari
 import lightbulb
+from lightbulb.ext import tasks
 import json
 from siegeapi import Auth
+from siegeapi.exceptions import FailedToConnect, InvalidRequest
 from hikari import components
 from hikari import snowflakes
-
 
 bot = lightbulb.BotApp(
     token=token,
     intents=hikari.Intents.ALL_UNPRIVILEGED | hikari.Intents.MESSAGE_CONTENT | hikari.Intents.GUILD_MEMBERS
 )
 
+with open("player_datas.json", "r") as file:
+    datas = json.load(file)
 
+def save_player_datas(data):
+    with open("player_datas.json", "w") as file:
+        json.dump(data, file)
 
 
 # Rang-IDs in Rainbow Six Siege und ihre entsprechenden Rollen-IDs im Discord-Server
@@ -56,25 +62,54 @@ rank_roles = {
     "Unranked": "1131862700503339038"
 }
 
+rank_images = {
+    "Champions": "https://cdn.discordapp.com/attachments/1133730829156225104/1134218598710251621/Champions.png",
+    "Diamond": "https://cdn.discordapp.com/attachments/1133730829156225104/1134218599016443964/Diamond.png",
+    "Emerald": "https://cdn.discordapp.com/attachments/1133730829156225104/1134218599276494950/Emerald.png",
+    "Platinum": "https://cdn.discordapp.com/attachments/1133730829156225104/1134218599767224381/Platinum.png",
+    "Gold": "https://cdn.discordapp.com/attachments/1133730829156225104/1134218599523946516/Gold.png",
+    "Silver": "https://cdn.discordapp.com/attachments/1133730829156225104/1134218600056635582/Silver.png",
+    "Bronze": "https://cdn.discordapp.com/attachments/1133730829156225104/1134218598466994256/Bronze.png",
+    "Copper": "https://cdn.discordapp.com/attachments/1133730829156225104/1134220237546463293/Copper.png",
+    "Unranked": "https://cdn.discordapp.com/attachments/1133730829156225104/1134218600325058592/Unranked.png"
+}
 
+@tasks.task(auto_start=True, h=1)
+async def ranks_check():
+    for user_id, info in datas.items():
+        rank = info[1]
+        guild = await bot.rest.fetch_guild(678607632692543509)
+        user = guild.get_member(user_id)
 
+        for role_id in rank_roles:
+            if role_id in user.role_ids:await bot.rest.remove_role_from_member(guild, user, role_id)
+
+        await bot.rest.add_role_to_member(guild, user, rank_roles[rank])
 
 @bot.command()
 @lightbulb.option("password", "The password for your Ubisoft account")
 @lightbulb.option("email", "Your Ubisoft email")
-@lightbulb.option("username", "Your Ubisoft username")
 @lightbulb.command("get-rank", "Get your Rank")
 @lightbulb.implements(lightbulb.SlashCommand)
 async def create_rank(ctx: lightbulb.Context) -> None:
     password = ctx.options.password
     mail = ctx.options.email
-    username = ctx.options.username
     member = ctx.member
 
     guild_id = 678607632692543509
     auth = Auth(mail, password)
-    player = await auth.get_player(username)
-
+    await auth.connect()
+    try:
+        player = await auth.get_player(uid=auth.userid)
+    except FailedToConnect:
+        await ctx.respond(content=f"Eingabe Falsch! Email oder Passwort ist inkorrekt!", flags=hikari.MessageFlag.EPHEMERAL)
+        await auth.close()
+        return
+    except InvalidRequest:
+        await ctx.respond(content=f"Keine Daten zu diesem Ubisoft Account gefunden. Sollte dies ein Fehler sein öffne bitte ein <#963132179813109790>.", flags=hikari.MessageFlag.EPHEMERAL)
+        await auth.close()
+        return
+    
     await player.load_ranked_v2()
     rank_name = player.ranked_profile.rank
     rank_role_id = rank_roles.get(rank_name)
@@ -83,27 +118,93 @@ async def create_rank(ctx: lightbulb.Context) -> None:
         await bot.rest.add_role_to_member(guild_id, member, rank_role_id)
         await ctx.respond(content=f"Du hast dich mit **{player.name}** verifiziert.\nDir wurde der Rank {rank_name} gegeben.", flags=hikari.MessageFlag.EPHEMERAL)
 
-        # Save player data to JSON file
-        save_player_data(player.name, rank_name, ctx.author.id)
+        # Save player datas to JSON file
+        datas[str(ctx.author.id)] = [auth.userid, rank_name]
+        save_player_datas(datas)
 
     else:
         await ctx.respond(content=f"Ein Fehler ist aufgetreten beim Verifizieren deines Ranges. Bitte öffne ein <#963132179813109790>!", flags=hikari.MessageFlag.EPHEMERAL)
 
     await auth.close()
 
+@bot.command()
+@lightbulb.option("channel", "in welchem Voice Channel befindest du dich?", type=hikari.GuildVoiceChannel, channel_types=[hikari.ChannelType.GUILD_VOICE], required=False)
+@lightbulb.option("note", "Notizen, die du dem Post hinzufügen willst.", required=False)
+@lightbulb.command("lfg", "Sende eine Embed mit deinen Statistiken, um die Spielersuche zu erleichtern.")
+@lightbulb.implements(lightbulb.SlashCommand)
+async def lfg(ctx: lightbulb.Context):
+    channel = ctx.options.channel
+    note = ctx.options.note
+    member = ctx.member
+    
+    try:
+        user_id = datas[str(ctx.author.id)][0]
+    except:
+        await ctx.respond(content=f"Du hast noch keinen Account verlinkt. Bitte verwende **/get-rank** in <#886559555629244417> um deinen Rang zu erhalten.\nWeiter Informationen findest du in <#1115374316255715489>.", flags=hikari.MessageFlag.EPHEMERAL)
+        return
+    
+    await ctx.respond(response_type=hikari.ResponseType.DEFERRED_MESSAGE_CREATE)
 
-def save_player_data(player_name, rank, discord_user_id):
-    data = {
-        "player_name": player_name,
-        "rank": rank,
-        "discord_user_id": discord_user_id,
-    }
+    auth = Auth(def_mail, def_pw)
+    player = await auth.get_player(uid=user_id)
+    
+    try:
+        await player.load_ranked_v2()
+        await player.load_summaries()
+    except InvalidRequest:
+        await ctx.respond(content=f"**{player.name}** hat noch keine Einträge diese Season.")
+        return 
+    
+    kd_ratio = 0
+    hs_acc = 0
+    wl_ratio = 0
 
-    with open("player_data.json", "w") as file:
-        json.dump(data, file)
+    seasons = sorted(player.all_summary.keys(), reverse=True)
+    season = seasons[0]
+
+    kd_ratio = player.ranked_summary[season]["all"].kill_death_ratio  
+    hs_acc = player.ranked_summary[season]["all"].headshot_accuracy
+    win = player.ranked_summary[season]["all"].matches_won
+    matches = player.ranked_summary[season]["all"].matches_played
+
+    kd_ratio = round(kd_ratio/100, 2)
+    hs_acc = round(hs_acc, 2)
+    wl_ratio = round(win/matches, 2)*100
 
 
+    rank = player.ranked_profile.rank
+    datas[str(ctx.author.id)][1] = rank
+    save_player_datas(datas)
 
+    ger_check = False
+    eng_check = False
+    both_check = False
+    if 1133964116793491476 in member.role_ids:
+        ger_check = True
+    if 1133964210892705794 in member.role_ids:
+        eng_check = True
+
+    lang_display = None
+    if ger_check and eng_check:lang_display="🇩🇪 German - 🇬🇧 English"
+    elif ger_check:lang_display="🇩🇪 German"
+    elif eng_check:lang_display="🇬🇧 English"
+
+    em = hikari.Embed(description=f"**UBISOFT USERNAME:** {player.name}", color="#ffffff")
+    em.add_field(name="Aktueller Rank:", value=f"{rank}")
+    em.add_field(name="Statistiken:", value=f"**Win Rate:** {wl_ratio}%\n**KD:** {kd_ratio}\n**Headshot Rate:** {hs_acc}%")
+    if lang_display:em.add_field(name=f"Sprache{'n' if both_check else ''}", value=lang_display)
+    em.set_author(name=f"{member}'s Profil", icon=member.display_avatar_url)
+    em.set_thumbnail(rank_images[rank.split(" ")[0]])
+
+    if channel and note:
+        await ctx.respond(content=f"{member.mention} Sucht nache einer Gruppe in {channel.mention} : `{note}`", embed=em)
+    elif channel:
+        await ctx.respond(content=f"{member.mention} Sucht nache einer Gruppe in {channel.mention}.", embed=em)
+    elif note:
+        await ctx.respond(content=f"{member.mention} Sucht nache einer Gruppe: `{note}`", embed=em)
+    else:
+        await ctx.respond(content=f"{member.mention} Sucht nache einer Gruppe.", embed=em)
+    await auth.close()
 
 @bot.command()
 @lightbulb.command("rankembed", "Erstelle die Ranking Embed im Rainbow Six Channel")
@@ -167,7 +268,6 @@ async def rankembed(ctx: lightbulb.SlashContext) -> None:
         await channel.send(embed=embed, components=[update, remove])
 
 
-
 @bot.listen()
 async def on_interaction_create(event: hikari.InteractionCreateEvent):
     if event.interaction.type is hikari.InteractionType.MESSAGE_COMPONENT:
@@ -185,7 +285,7 @@ async def on_interaction_create(event: hikari.InteractionCreateEvent):
             guild_id = 678607632692543509
             member = await bot.rest.fetch_member(guild_id, event.interaction.user.id)
 
-            # Fetch the roles of the member
+            #Fetch the roles of the member
             roles = [str(role_id) for role_id in member.role_ids]
 
             for rank_name, role_id in rank_roles.items():
@@ -199,8 +299,6 @@ async def on_interaction_create(event: hikari.InteractionCreateEvent):
                 flags=hikari.MessageFlag.EPHEMERAL
             )
 
-
-    
 
 
 bot.run()
