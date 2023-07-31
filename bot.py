@@ -138,6 +138,7 @@ async def update_rank():
         datas[m_id][1] = rank
         datas[m_id][2] = current_mmr
         datas[m_id][3] = max_mmr
+        datas[m_id][4] = player.name
 
     save_player_datas(datas)
 
@@ -158,7 +159,7 @@ async def ranks_check():
         await bot.rest.add_role_to_member(guild, user, real_ids["rank_roles"][rank.split(" ")[0]])
     #Leaderboard
     
-    classement = sorted(datas.items(), key=lambda x: x[1][2])
+    classement = sorted(datas.items(), key=lambda x: x[1][2], reversed=True)
     guild = await bot.rest.fetch_guild(real_ids["guild"])
 
     embed = hikari.Embed(title="R6 Leaderboard.", color=0x010409)
@@ -166,12 +167,12 @@ async def ranks_check():
     for i in range(1, 6):
         try:
             user = await bot.rest.fetch_member(guild, int(classement[i-1][0]))
-            embed.add_field(name=f"{i}. {classement[i-1][1][0]}", value=f"{user.mention} - ({user.username}) : {classement[i-1][1][1]} ({classement[i-1][1][2]}) | Max MMR : {classement[i-1][1][3]}")
+            embed.add_field(name=f"{i}. {classement[i-1][1][4]}", value=f"{user.mention} - ({user.username}) : {classement[i-1][1][1]} ({classement[i-1][1][2]}) | Max MMR : {classement[i-1][1][3]}")
         except:break
         
     chan = await bot.rest.fetch_channel(real_ids["ranking_infos"][0])
     mess = await chan.fetch_message(real_ids["ranking_infos"][1])
-    await mess.edit(embed=embed)
+    await mess.edit(embed=embed, components=[])
 
 @bot.command()
 @lightbulb.option("password", "The password for your Ubisoft account")
@@ -208,7 +209,7 @@ async def create_rank(ctx: lightbulb.Context) -> None:
         await ctx.respond(content=f"Du hast dich mit **{player.name}** verifiziert.\nDir wurde der Rank {rank_name} gegeben.", flags=hikari.MessageFlag.EPHEMERAL)
 
         # Save player datas to JSON file
-        datas[str(ctx.author.id)] = [auth.userid, rank_name, current_mmr, max_mmr]
+        datas[str(ctx.author.id)] = [auth.userid, rank_name, current_mmr, max_mmr, player.name]
         save_player_datas(datas)
 
     else:
@@ -267,6 +268,7 @@ async def lfg(ctx: lightbulb.Context):
     datas[str(ctx.author.id)][1] = rank
     datas[str(ctx.author.id)][2] = current_mmr
     datas[str(ctx.author.id)][3] = max_mmr
+    datas[str(ctx.author.id)][4] = player.name
 
     save_player_datas(datas)
 
@@ -325,6 +327,7 @@ async def rankembed(ctx: lightbulb.SlashContext) -> None:
             "        \"Aktueller Rang\",\n"
             "        \"Aktueller MMR\",\n"
             "        \"Maximal MMR\",\n"
+            "        \"Ubisoft username\",\n"
             "    ]\n"
             "}\n"
             "```"
