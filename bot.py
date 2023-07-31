@@ -202,8 +202,8 @@ async def create_rank(ctx: lightbulb.Context) -> None:
 
     guild_id = real_ids["guild"]
     auth = Auth(mail, password)
-    await auth.connect()
     try:
+        await auth.connect()
         player = await auth.get_player(uid=auth.userid)
     except FailedToConnect:
         await ctx.respond(content=f"Eingabe Falsch! Email oder Passwort ist inkorrekt!", flags=hikari.MessageFlag.EPHEMERAL)
