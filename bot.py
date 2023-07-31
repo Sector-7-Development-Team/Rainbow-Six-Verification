@@ -1,13 +1,11 @@
 from env import token, def_mail, def_pw
-import hikari
-import lightbulb
+import hikari, lightbulb, json
+from hikari import components
+from hikari.errors import NotFoundError
 from lightbulb.ext import tasks
-import json
 from siegeapi import Auth
 from siegeapi.exceptions import FailedToConnect, InvalidRequest
-from hikari import components
 from datetime import datetime
-from datetime import datetime, timedelta
 
 with open("player_datas.json", "r") as file:
     datas = json.load(file)
@@ -59,7 +57,7 @@ lfg_remind = {str(chan_id): 0 for chan_id in real_ids["search_channels"]}
 
 @bot.listen()
 async def on_ready(event: hikari.ShardReadyEvent) -> None:
-    print(f"Logged in as {event.my_user} {datetime.strftime(datetime.now(), '%d/%m/%Y %H:%M:%S')}")
+    print(f"{datetime.strftime(datetime.now(), '%d/%m/%Y %H:%M:%S')}\tLogged in as {event.my_user}")
     ranks_check.start()
     update_rank.start()
     for chan in lfg_remind.keys():
@@ -124,8 +122,14 @@ async def on_message_create(event: hikari.MessageCreateEvent):
 @tasks.task(d=1)
 async def update_rank():
     auth = Auth(def_mail, def_pw)
-        
+    to_del = []
     for m_id, value in datas.items():
+        try:
+            await bot.rest.fetch_member(real_ids["guild"], m_id)
+        except NotFoundError:
+            to_del.append(m_id)
+            continue
+        
         player = await auth.get_player(uid=value[0])
         
         try:
@@ -141,32 +145,41 @@ async def update_rank():
         datas[m_id][3] = max_mmr
         datas[m_id][4] = player.name
 
+    for d in to_del:
+        del datas[d]
+
     save_player_datas(datas)
 
 
 
 @tasks.task(h=1)
 async def ranks_check():
-    
+    to_del = []
     for user_id, info in datas.items():
         rank = info[1]
         guild = await bot.rest.fetch_guild(real_ids["guild"])
 
-        user = await bot.rest.fetch_member(guild, user_id)
+        try:
+            user = await bot.rest.fetch_member(guild, user_id)
+        except NotFoundError:
+            to_del.append(user_id)
+            continue
 
         for role_id in real_ids["rank_roles"]:
             if role_id in user.role_ids:await bot.rest.remove_role_from_member(guild, user, role_id)
 
         await bot.rest.add_role_to_member(guild, user, real_ids["rank_roles"][rank.split(" ")[0]])
+    
+    for d in to_del:
+        del datas[d]
+
     #Leaderboard
     
     classement = sorted(datas.items(), key=lambda x: x[1][2], reverse=True)
     guild = await bot.rest.fetch_guild(real_ids["guild"])
 
-    now = datetime.now() + timedelta(hours=0)
-
     embed = hikari.Embed(title="R6 Leaderboard.", color=0x010409)
-    embed.set_footer(text=f"Letztes Update: {now.strftime('%H:%M')}")
+    embed.set_footer(text=f"Letztes Update: {datetime.now().strftime('%H:%M')}")
     for i in range(1, 6):
         try:
             user = await bot.rest.fetch_member(guild, int(classement[i-1][0]))
