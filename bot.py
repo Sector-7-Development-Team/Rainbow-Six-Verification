@@ -40,7 +40,7 @@ real_ids = {
     "bot": 1127646879304396860,
     "guild": 678607632692543509,
     "search_channels": [1115663068786065438, 1110933872612478987],
-    "ranking_infos": [0, 0], #DRAGOS CHOOSE/CREATE CHANNEL, #DRAGOS CREATE MESSAGE
+    "ranking_infos": [1130012873452699729, 0], #DRAGOS CHOOSE/CREATE CHANNEL, #DRAGOS CREATE MESSAGE
     "rank_roles": {
         "Champions": "1002405009511694347",
         "Diamond": "1002404966247436448",
@@ -113,7 +113,7 @@ async def on_message_create(event: hikari.MessageCreateEvent):
     
     if count >= 20:
         chan = await event.message.fetch_channel()
-        await chan.send(content="REMIND MESSAGE TO USE </lfg:1134870100315492425>") #DRAGOS DO MESSAGE
+        await chan.send(content=":dot: **Verwende </lfg:1134870100315492425> um nach spielern zu suchen.\n:dot: In <#1115374316255715489> Siehst du wie du dein Ubisoft Konto verknüpfst.\n:dot: Für das verwenden des </lfg:1134870100315492425> Commands bekommst du **XP**!")
         lfg_remind[str(event.channel_id)] = 0
     else:lfg_remind[str(event.channel_id)] += 1
 
@@ -148,18 +148,17 @@ async def ranks_check():
         rank = info[1]
         guild = await bot.rest.fetch_guild(real_ids["guild"])
         user = guild.get_member(user_id)
-
+        roles = [str(role.id) async for role in user.fetch_roles()]
         for role_id in real_ids["rank_roles"]:
-            if role_id in user.role_ids:await bot.rest.remove_role_from_member(guild, user, role_id)
+            if role_id in roles:await bot.rest.remove_role_from_member(guild, user, role_id)
 
         await bot.rest.add_role_to_member(guild, user, real_ids["rank_roles"][rank.split(" ")[0]])
-
     #Leaderboard
     
     classement = sorted(datas.items(), key=lambda x: x[1][2])
     guild = await bot.rest.fetch_guild(real_ids["guild"])
 
-    embed = hikari.Embed(title="TRANSLATE Top 5 better R6 members", color=0xffffff) #DRAGOS CHOOSE COLOR
+    embed = hikari.Embed(title="R6 Leaderboard.", color=0x010409)
     embed.set_footer(text=f"Letztes Update: {datetime.now().strftime('%d/%m %H:%M')}")
     for i in range(1, 6):
         try:
