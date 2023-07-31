@@ -319,18 +319,17 @@ async def rankembed(ctx: lightbulb.SlashContext) -> None:
     embed.add_field(
         name="Wichtige Information",
         value="Wir möchten betonen, dass wir **keinerlei** sensible Daten wie Passwörter oder E-Mails **speichern** "
-            "oder weitergeben. Die einzigen Informationen, die wir speichern und einsehen können, sind: \n\n"
-            "```json\n"
-            "{\n"
-            "    \"DISCORD_ID (442729843055132674)\": [\n"
-            "        \"Ubisoft_ID\",\n"
-            "        \"Aktueller Rang\",\n"
-            "        \"Aktueller MMR\",\n"
-            "        \"Maximal MMR\",\n"
-            "        \"Ubisoft username\",\n"
-            "    ]\n"
-            "}\n"
-            "```"
+            'oder weitergeben. Die einzigen Informationen, die wir speichern und einsehen können, sind: \n\n'
+            '```json\n'
+            '{\n'
+            '   ubisoft_id": "Deine Ubisoft ID",\n'
+            '   ingame_name": "Dein Ingame Name",\n'
+            '   rank": "Dein Aktueller Rang",\n'
+            '   current_mmr": "Deine Aktuelle MMR anzahl",\n'
+            '   max_mmr": "Die höchste MMR anzahl die du je hattest",\n'
+            '   discord_user_id": "Deine Discord User ID",\n'
+            '}\n'
+            '```'
     )
     embed.add_field(
         name="Public Repo",
