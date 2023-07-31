@@ -116,7 +116,7 @@ async def on_message_create(event: hikari.MessageCreateEvent):
     
     if count >= 20:
         chan = await event.message.fetch_channel()
-        await chan.send(content=":dot: **Verwende </lfg:1134870100315492425> um nach spielern zu suchen.\n:dot: In <#1115374316255715489> Siehst du wie du dein Ubisoft Konto verknüpfst.\n:dot: Für das verwenden des </lfg:1134870100315492425> Commands bekommst du **XP**!")
+        await chan.send(content="<:dot:1115955601030250546> **Verwende </lfg:1134870100315492425> um nach spielern zu suchen.**\n<:dot:1115955601030250546> In <#1115374316255715489> Siehst du wie du dein Ubisoft **Konto verknüpfst**.\n<:dot:1115955601030250546> Für das verwenden des </lfg:1134870100315492425> Commands bekommst du **XP**!")
         lfg_remind[str(event.channel_id)] = 0
     else:lfg_remind[str(event.channel_id)] += 1
 
