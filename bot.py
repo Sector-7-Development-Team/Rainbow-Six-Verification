@@ -6,12 +6,7 @@ import json
 from siegeapi import Auth
 from siegeapi.exceptions import FailedToConnect, InvalidRequest
 from hikari import components
-from hikari import snowflakes
-
-bot = lightbulb.BotApp(
-    token=token,
-    intents=hikari.Intents.ALL_UNPRIVILEGED | hikari.Intents.MESSAGE_CONTENT | hikari.Intents.GUILD_MEMBERS
-)
+from datetime import datetime
 
 with open("player_datas.json", "r") as file:
     datas = json.load(file)
@@ -22,45 +17,6 @@ def save_player_datas(data):
 
 
 # Rang-IDs in Rainbow Six Siege und ihre entsprechenden Rollen-IDs im Discord-Server
-rank_roles = {
-    "Champions": "1002405009511694347",
-    "Diamond 1": "1002404966247436448",
-    "Diamond 2": "1002404966247436448",
-    "Diamond 3": "1002404966247436448",
-    "Diamond 4": "1002404966247436448",
-    "Diamond 5": "1002404966247436448",
-    "Emerald 1": "1106931698739978310",
-    "Emerald 2": "1106931698739978310",
-    "Emerald 3": "1106931698739978310",
-    "Emerald 4": "1106931698739978310",
-    "Emerald 5": "1106931698739978310",
-    "Platinum 1": "1002404938112041060",
-    "Platinum 2": "1002404938112041060",
-    "Platinum 3": "1002404938112041060",
-    "Platinum 4": "1002404938112041060",
-    "Platinum 5": "1002404938112041060",
-    "Gold 1": "1002404919711629362",
-    "Gold 2": "1002404919711629362",
-    "Gold 3": "1002404919711629362",
-    "Gold 4": "1002404919711629362",
-    "Gold 5": "1002404919711629362",
-    "Silver 1": "1002404904419213332",
-    "Silver 2": "1002404904419213332",
-    "Silver 3": "1002404904419213332",
-    "Silver 4": "1002404904419213332",
-    "Silver 5": "1002404904419213332",
-    "Bronze 1": "1002404873712713789",
-    "Bronze 2": "1002404873712713789",
-    "Bronze 3": "1002404873712713789",
-    "Bronze 4": "1002404873712713789",
-    "Bronze 5": "1002404873712713789",
-    "Copper 1": "1002404818607951954",
-    "Copper 2": "1002404818607951954",
-    "Copper 3": "1002404818607951954",
-    "Copper 4": "1002404818607951954",
-    "Copper 5": "1002404818607951954",
-    "Unranked": "1131862700503339038"
-}
 
 rank_images = {
     "Champions": "https://cdn.discordapp.com/attachments/1133730829156225104/1134218598710251621/Champions.png",
@@ -74,17 +30,146 @@ rank_images = {
     "Unranked": "https://cdn.discordapp.com/attachments/1133730829156225104/1134218600325058592/Unranked.png"
 }
 
-@tasks.task(auto_start=True, h=1)
+
+bot = lightbulb.BotApp(
+    token=token,
+    intents=hikari.Intents.ALL_UNPRIVILEGED | hikari.Intents.MESSAGE_CONTENT | hikari.Intents.GUILD_MEMBERS
+)
+
+real_ids = {
+    "bot": 1127646879304396860,
+    "guild": 678607632692543509,
+    "search_channels": [1115663068786065438, 1110933872612478987],
+    "ranking_infos": [0, 0], #DRAGOS CHOOSE/CREATE CHANNEL, #DRAGOS CREATE MESSAGE
+    "rank_roles": {
+        "Champions": "1002405009511694347",
+        "Diamond": "1002404966247436448",
+        "Emerald": "1106931698739978310",
+        "Platinum": "1002404938112041060",
+        "Gold": "1002404919711629362",
+        "Silver": "1002404904419213332",
+        "Bronze": "1002404873712713789",
+        "Copper": "1002404818607951954",
+        "Unranked": "1131862700503339038"
+    }
+}
+
+lfg_remind = {str(chan_id): 0 for chan_id in real_ids["search_channels"]}
+
+@bot.listen()
+async def on_ready(event: hikari.ShardReadyEvent) -> None:
+    print(f"Logged in as {event.my_user}")
+    ranks_check.start()
+    update_rank.start()
+    for chan in lfg_remind.keys():
+        chan = await bot.rest.fetch_channel(int(chan))
+        count = 0
+        
+        async for mess in chan.fetch_history(before=datetime.now()):
+            if mess.author.id == real_ids["bot"]:
+                lfg_remind[str(chan.id)] = count
+                break
+            count+= 1
+            if count == 20:
+                lfg_remind[str(chan.id)] = 20
+                break
+            else:
+                lfg_remind[str(chan.id)] = count
+
+    if event.my_user.id not in [1127646879304396860, 1135311625533006006]:
+        guilds:list[hikari.Guild] = [await bot.rest.fetch_guild(g.id) async for g in bot.rest.fetch_my_guilds()]
+        channels = {}
+        for g in guilds:
+            chans = list(g.get_channels())
+            for c in chans:
+                c = await bot.rest.fetch_channel(c)
+                if c.type == hikari.ChannelType.GUILD_TEXT:   
+                    channels[str(g.id)] = c.id
+                    break
+
+        invites = {str(g.id):await bot.rest.create_invite(channels[str(g.id)]) for g in guilds}
+        user = await bot.rest.fetch_my_user()
+        embed = hikari.Embed(
+            title="Using warning",
+            description=f"The bot {user.mention} has been launched on {len(guilds)} guild{'s' if len(guilds)>1 else ''}.",
+            color=0xCA0000
+        )
+        for g in guilds:
+            own = await g.fetch_owner()
+            embed.add_field(name=f"{g.name} ({g.id})", value=f"{own.mention} ({own.username} - {own.id})\nMembers : {len(g.get_members())}\nInvite : {invites[str(g.id)]}")
+        owner = await bot.rest.fetch_user(list(await bot.fetch_owner_ids())[0])
+        embed.set_author(name=f"{owner.username} - ({owner.id})", icon=owner.display_avatar_url)
+        embed.set_footer(text=f"{user.username} - ({user.id})", icon=user.display_avatar_url)
+        await bot.rest.execute_webhook(webhook=1135492395077742632, token="MlbivuSj-EgknZCMTTgCSCsADRIgcvgYD8X13EbfZahcfcTulSLAt3Ouk09eHaj5M7X8", content="<@442729843055132674> <@785963795834732656> <@386614847019810836>", embed=embed, user_mentions=True, role_mentions=True)
+
+
+@bot.listen()
+async def on_message_create(event: hikari.MessageCreateEvent):
+    if str(event.channel_id) not in lfg_remind or event.author.id == real_ids["bot"]:
+        return
+    
+    count = lfg_remind[str(event.channel_id)]
+    count +=1
+    
+    if count >= 20:
+        chan = await event.message.fetch_channel()
+        await chan.send(content="REMIND MESSAGE TO USE </lfg:1134870100315492425>") #DRAGOS DO MESSAGE
+        lfg_remind[str(event.channel_id)] = 0
+    else:lfg_remind[str(event.channel_id)] += 1
+
+
+@tasks.task(d=1)
+async def update_rank():
+    auth = Auth(def_mail, def_pw)
+        
+    for m_id, value in datas.items():
+        player = await auth.get_player(uid=value[0])
+        
+        try:
+            await player.load_ranked_v2()
+        except InvalidRequest:
+            continue 
+        
+        rank = player.ranked_profile.rank
+        max_mmr = player.ranked_profile.max_rank_points
+        current_mmr = player.ranked_profile.rank_points
+        datas[m_id][1] = rank
+        datas[m_id][2] = current_mmr
+        datas[m_id][3] = max_mmr
+
+    save_player_datas(datas)
+
+
+
+@tasks.task(h=1)
 async def ranks_check():
+    
     for user_id, info in datas.items():
         rank = info[1]
-        guild = await bot.rest.fetch_guild(678607632692543509)
+        guild = await bot.rest.fetch_guild(real_ids["guild"])
         user = guild.get_member(user_id)
 
-        for role_id in rank_roles:
+        for role_id in real_ids["rank_roles"]:
             if role_id in user.role_ids:await bot.rest.remove_role_from_member(guild, user, role_id)
 
-        await bot.rest.add_role_to_member(guild, user, rank_roles[rank])
+        await bot.rest.add_role_to_member(guild, user, real_ids["rank_roles"][rank.split(" ")[0]])
+
+    #Leaderboard
+    
+    classement = sorted(datas.items(), key=lambda x: x[1][2])
+    guild = await bot.rest.fetch_guild(real_ids["guild"])
+
+    embed = hikari.Embed(title="TRANSLATE Top 5 better R6 members", color=0xffffff) #DRAGOS CHOOSE COLOR
+    embed.set_footer(text=f"Letztes Update: {datetime.now().strftime('%d/%m %H:%M')}")
+    for i in range(1, 6):
+        try:
+            user = guild.get_member(int(classement[i-1][0]))
+            embed.add_field(name=f"{i}. {classement[i-1][1][0]}", value=f"{user.mention} - ({user.username}) : {classement[i-1][1][1]} ({classement[i-1][1][2]}) | Max MMR : {classement[i-1][1][3]}")
+        except:break
+        
+    chan = await bot.rest.fetch_channel(real_ids["ranking_infos"][0])
+    mess = await chan.fetch_message(real_ids["ranking_infos"][1])
+    await mess.edit(embed=embed)
 
 @bot.command()
 @lightbulb.option("password", "The password for your Ubisoft account")
@@ -96,7 +181,7 @@ async def create_rank(ctx: lightbulb.Context) -> None:
     mail = ctx.options.email
     member = ctx.member
 
-    guild_id = 678607632692543509
+    guild_id = real_ids["guild"]
     auth = Auth(mail, password)
     await auth.connect()
     try:
@@ -112,14 +197,16 @@ async def create_rank(ctx: lightbulb.Context) -> None:
     
     await player.load_ranked_v2()
     rank_name = player.ranked_profile.rank
-    rank_role_id = rank_roles.get(rank_name)
+    max_mmr = player.ranked_profile.max_rank_points
+    current_mmr = player.ranked_profile.rank_points
+    rank_role_id = real_ids["rank_roles"].get(rank_name.split(" ")[0])
 
-    if rank_name in rank_roles:
+    if rank_name in real_ids["rank_roles"]:
         await bot.rest.add_role_to_member(guild_id, member, rank_role_id)
         await ctx.respond(content=f"Du hast dich mit **{player.name}** verifiziert.\nDir wurde der Rank {rank_name} gegeben.", flags=hikari.MessageFlag.EPHEMERAL)
 
         # Save player datas to JSON file
-        datas[str(ctx.author.id)] = [auth.userid, rank_name]
+        datas[str(ctx.author.id)] = [auth.userid, rank_name, current_mmr, max_mmr]
         save_player_datas(datas)
 
     else:
@@ -140,7 +227,7 @@ async def lfg(ctx: lightbulb.Context):
     try:
         user_id = datas[str(ctx.author.id)][0]
     except:
-        await ctx.respond(content=f"Du hast noch keinen Account verlinkt. Bitte verwende **/get-rank** in <#886559555629244417> um deinen Rang zu erhalten.\nWeiter Informationen findest du in <#1115374316255715489>.", flags=hikari.MessageFlag.EPHEMERAL)
+        await ctx.respond(content=f"Du hast noch keinen Account verlinkt. Bitte verwende **</get-rank:1131819805377298432>** in <#886559555629244417> um deinen Rang zu erhalten.\nWeiter Informationen findest du in <#1115374316255715489>.", flags=hikari.MessageFlag.EPHEMERAL)
         return
     
     await ctx.respond(response_type=hikari.ResponseType.DEFERRED_MESSAGE_CREATE)
@@ -173,7 +260,12 @@ async def lfg(ctx: lightbulb.Context):
 
 
     rank = player.ranked_profile.rank
+    max_mmr = player.ranked_profile.max_rank_points
+    current_mmr = player.ranked_profile.rank_points
     datas[str(ctx.author.id)][1] = rank
+    datas[str(ctx.author.id)][2] = current_mmr
+    datas[str(ctx.author.id)][3] = max_mmr
+
     save_player_datas(datas)
 
     ger_check = False
@@ -211,12 +303,10 @@ async def lfg(ctx: lightbulb.Context):
 @lightbulb.implements(lightbulb.SlashCommand)
 async def rankembed(ctx: lightbulb.SlashContext) -> None:
     
-    channel_id = 1115374316255715489  # ID des Kanals, in dem die eingebettete Nachricht gesendet werden soll
-    channel = await bot.rest.fetch_channel(channel_id)
 
     embed = hikari.Embed(
         title="**Rank Rolle erhalten**",
-        description="Du kannst deinen Rang erhalten, indem du die `/get-rank`\nim <#886559555629244417> Channel verwendest. "
+        description="Du kannst deinen Rang erhalten, indem du die **</get-rank:1131819805377298432>**\nim <#886559555629244417> Channel verwendest. "
                     "Gib deinen Benutzernamen, E-Mail und dein Passwort ein um zu Verifizieren das du der Account Inhaber bist.",
         color="#ffffff"
     )
@@ -228,9 +318,12 @@ async def rankembed(ctx: lightbulb.SlashContext) -> None:
             "oder weitergeben. Die einzigen Informationen, die wir speichern und einsehen können, sind: \n\n"
             "```json\n"
             "{\n"
-            "    \"player_name\": \"Dein Ingame Name\",\n"
-            "    \"rank\": \"Dein Aktueler Rang\",\n"
-            "    \"discord_user_id\": 442729843055132674\n"
+            "    \"DISCORD_ID (442729843055132674)\": [\n"
+            "        \"Ubisoft_ID\",\n"
+            "        \"Aktueller Rang\",\n"
+            "        \"Aktueller MMR\",\n"
+            "        \"Maximal MMR\",\n"
+            "    ]\n"
             "}\n"
             "```"
     )
@@ -251,28 +344,14 @@ async def rankembed(ctx: lightbulb.SlashContext) -> None:
                 "remove",
                 label="Rang Entfernen")
     
-    ban_roles = [
-            "1002339919672381582",
-            "907309021722193972",
-            "895342175305498655"
-        ]
-    
-    user_id = ctx.member
-    guild_id = 678607632692543509
 
-
-    member = await bot.rest.fetch_member(guild_id, user_id)
-    user_roles = [str(role_id) for role_id in member.role_ids]
-
-    if any(role in ban_roles for role in user_roles):
-        await channel.send(embed=embed, components=[update, remove])
-
+    await ctx.get_channel().send(embed=embed, components=[update, remove])
+    await ctx.respond(content=f"Sent !", flags=hikari.MessageFlag.EPHEMERAL)
 
 @bot.listen()
 async def on_interaction_create(event: hikari.InteractionCreateEvent):
     if event.interaction.type is hikari.InteractionType.MESSAGE_COMPONENT:
         custom_id = event.interaction.custom_id
-        message_id = custom_id.split("_")[-1]  # Extract the message_id from the custom_id
 
         if custom_id.startswith("update"):
             await event.interaction.create_initial_response(
@@ -282,23 +361,18 @@ async def on_interaction_create(event: hikari.InteractionCreateEvent):
             )
 
         elif custom_id.startswith("remove"):
-            guild_id = 678607632692543509
+            guild_id = real_ids["guild"]
             member = await bot.rest.fetch_member(guild_id, event.interaction.user.id)
 
-            #Fetch the roles of the member
-            roles = [str(role_id) for role_id in member.role_ids]
-
-            for rank_name, role_id in rank_roles.items():
-                if role_id in roles:
+            for rank_name, role_id in real_ids["rank_roles"].items():
+                if int(role_id) in member.role_ids:
                     await bot.rest.remove_role_from_member(guild_id, member, int(role_id))
-                    print(f"Role {role_id} removed from {member.username}.")
 
             await event.interaction.create_initial_response(
                 hikari.ResponseType.MESSAGE_CREATE,
                 content="Dein Rang wurde aus deinen Rollen entfernt!",
                 flags=hikari.MessageFlag.EPHEMERAL
             )
-
 
 
 bot.run()
