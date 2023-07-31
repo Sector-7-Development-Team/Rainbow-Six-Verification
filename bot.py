@@ -7,6 +7,7 @@ from siegeapi import Auth
 from siegeapi.exceptions import FailedToConnect, InvalidRequest
 from hikari import components
 from datetime import datetime
+from datetime import datetime, timedelta
 
 with open("player_datas.json", "r") as file:
     datas = json.load(file)
@@ -40,7 +41,7 @@ real_ids = {
     "bot": 1127646879304396860,
     "guild": 678607632692543509,
     "search_channels": [1115663068786065438, 1110933872612478987],
-    "ranking_infos": [1130012873452699729, 0], #DRAGOS CHOOSE/CREATE CHANNEL, #DRAGOS CREATE MESSAGE
+    "ranking_infos": [1130012873452699729, 1135572152402329721], #DRAGOS CHOOSE/CREATE CHANNEL, #DRAGOS CREATE MESSAGE
     "rank_roles": {
         "Champions": "1002405009511694347",
         "Diamond": "1002404966247436448",
@@ -58,7 +59,7 @@ lfg_remind = {str(chan_id): 0 for chan_id in real_ids["search_channels"]}
 
 @bot.listen()
 async def on_ready(event: hikari.ShardReadyEvent) -> None:
-    print(f"Logged in as {event.my_user}")
+    print(f"Logged in as {event.my_user} {datetime.strftime(datetime.now(), '%d/%m/%Y %H:%M:%S')}")
     ranks_check.start()
     update_rank.start()
     for chan in lfg_remind.keys():
@@ -159,11 +160,13 @@ async def ranks_check():
         await bot.rest.add_role_to_member(guild, user, real_ids["rank_roles"][rank.split(" ")[0]])
     #Leaderboard
     
-    classement = sorted(datas.items(), key=lambda x: x[1][2], reversed=True)
+    classement = sorted(datas.items(), key=lambda x: x[1][2], reverse=True)
     guild = await bot.rest.fetch_guild(real_ids["guild"])
 
+    now = datetime.now() + timedelta(hours=0)
+
     embed = hikari.Embed(title="R6 Leaderboard.", color=0x010409)
-    embed.set_footer(text=f"Letztes Update: {datetime.now().strftime('%d/%m %H:%M')}")
+    embed.set_footer(text=f"Letztes Update: {now.strftime('%H:%M')}")
     for i in range(1, 6):
         try:
             user = await bot.rest.fetch_member(guild, int(classement[i-1][0]))
