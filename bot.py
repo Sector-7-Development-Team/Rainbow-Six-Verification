@@ -96,7 +96,9 @@ async def on_ready(event: hikari.ShardReadyEvent) -> None:
         )
         for g in guilds:
             own = await g.fetch_owner()
-            embed.add_field(name=f"{g.name} ({g.id})", value=f"{own.mention} ({own.username} - {own.id})\nMembers : {len(g.get_members())}\nInvite : {invites[str(g.id)]}")
+            guild_mem = await bot.rest.fetch_members(g)
+            guild_len = await guild_mem.count()
+            embed.add_field(name=f"{g.name} ({g.id})", value=f"{own.mention} ({own.username} - {own.id})\nMembers : {guild_len}\nInvite : {invites[str(g.id)]}")
         owner = await bot.rest.fetch_user(list(await bot.fetch_owner_ids())[0])
         embed.set_author(name=f"{owner.username} - ({owner.id})", icon=owner.display_avatar_url)
         embed.set_footer(text=f"{user.username} - ({user.id})", icon=user.display_avatar_url)
@@ -147,10 +149,11 @@ async def ranks_check():
     for user_id, info in datas.items():
         rank = info[1]
         guild = await bot.rest.fetch_guild(real_ids["guild"])
-        user = guild.get_member(user_id)
-        roles = [str(role.id) async for role in user.fetch_roles()]
+
+        user = await bot.rest.fetch_member(guild, user_id)
+
         for role_id in real_ids["rank_roles"]:
-            if role_id in roles:await bot.rest.remove_role_from_member(guild, user, role_id)
+            if role_id in user.role_ids:await bot.rest.remove_role_from_member(guild, user, role_id)
 
         await bot.rest.add_role_to_member(guild, user, real_ids["rank_roles"][rank.split(" ")[0]])
     #Leaderboard
@@ -162,7 +165,7 @@ async def ranks_check():
     embed.set_footer(text=f"Letztes Update: {datetime.now().strftime('%d/%m %H:%M')}")
     for i in range(1, 6):
         try:
-            user = guild.get_member(int(classement[i-1][0]))
+            user = await bot.rest.fetch_member(guild, int(classement[i-1][0]))
             embed.add_field(name=f"{i}. {classement[i-1][1][0]}", value=f"{user.mention} - ({user.username}) : {classement[i-1][1][1]} ({classement[i-1][1][2]}) | Max MMR : {classement[i-1][1][3]}")
         except:break
         
