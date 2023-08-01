@@ -218,19 +218,14 @@ async def create_rank(ctx: lightbulb.Context) -> None:
     rank_name = player.ranked_profile.rank
     max_mmr = player.ranked_profile.max_rank_points
     current_mmr = player.ranked_profile.rank_points
-    rank_role_id = real_ids["rank_roles"].get(rank_name.split(" ")[0])
+    role_id = real_ids["rank_roles"][rank_name.split(" ")[0]]
+    await bot.rest.add_role_to_member(guild_id, member, )
+    await ctx.respond(content=f"Du hast dich mit **{player.name}** verifiziert.\nDir wurde der Rank <@&{role_id}> gegeben.", flags=hikari.MessageFlag.EPHEMERAL)
 
-    if rank_name in real_ids["rank_roles"]:
-        await bot.rest.add_role_to_member(guild_id, member, rank_role_id)
-        await ctx.respond(content=f"Du hast dich mit **{player.name}** verifiziert.\nDir wurde der Rank {rank_name} gegeben.", flags=hikari.MessageFlag.EPHEMERAL)
-
-        # Save player datas to JSON file
-        datas[str(ctx.author.id)] = [auth.userid, rank_name, current_mmr, max_mmr, player.name]
-        save_player_datas(datas)
-
-    else:
-        await ctx.respond(content=f"Ein Fehler ist aufgetreten beim Verifizieren deines Ranges. Bitte öffne ein <#963132179813109790>!", flags=hikari.MessageFlag.EPHEMERAL)
-
+    # Save player datas to JSON file
+    datas[str(ctx.author.id)] = [auth.userid, rank_name, current_mmr, max_mmr, player.name]
+    save_player_datas(datas)
+    
     await auth.close()
 
 @bot.command()
