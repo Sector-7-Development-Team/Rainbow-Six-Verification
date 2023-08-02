@@ -219,7 +219,7 @@ async def create_rank(ctx: lightbulb.Context) -> None:
     max_mmr = player.ranked_profile.max_rank_points
     current_mmr = player.ranked_profile.rank_points
     role_id = real_ids["rank_roles"][rank_name.split(" ")[0]]
-    await bot.rest.add_role_to_member(guild_id, member, )
+    await bot.rest.add_role_to_member(guild_id, member, role_id)
     await ctx.respond(content=f"Du hast dich mit **{player.name}** verifiziert.\nDir wurde der Rank <@&{role_id}> gegeben.", flags=hikari.MessageFlag.EPHEMERAL)
 
     # Save player datas to JSON file
