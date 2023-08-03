@@ -446,7 +446,7 @@ async def rankembed(ctx: lightbulb.SlashContext) -> None:
             '   \n'
             '}\n'
             '```'
-            "**Was sind das für Knöpfe?**\n\n**Hinzufügen:** Verlinke deinen Ubisoft Account\n**Entfernen:** Lösche deine Daten aus unserer Datenbank.\n\n**Anzeigen**: Zeige deinen Rang in deinen Rollen an\n**Verstecken:** Verstecke deinen Rang.\n\n**Aktualisieren:** Aktualisiere deinen Rank"
+            "**Was sind das für Knöpfe?**\n\n**Hinzufügen:** Verlinke deinen Ubisoft Account\n**Entfernen:** Lösche deine Daten aus unserer Datenbank.\n\n**Anzeigen**: Zeige deinen Rang in deinen Rollen an\n**Verstecken:** Verstecke deinen Rang.\n\n**Aktualisieren:** Aktualisiere deinen Rank\n\n\n**Ubisoft Account mit Discord Verküpfen:\nUm deinen Ubisoft Account mit Discord zu verknüpfen siehe den Post in <#1136689679639519333>."
     )
     embed.add_field(
         name="Public Repo",
