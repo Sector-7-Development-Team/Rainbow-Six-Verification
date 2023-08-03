@@ -45,7 +45,7 @@ real_ids = {
     "bot": 1127646879304396860,
     "guild": 678607632692543509,
     "search_channels": [1115663068786065438, 1110933872612478987],
-    "ranking_infos": [1130012873452699729, 1135572152402329721], #DRAGOS CHOOSE/CREATE CHANNEL, #DRAGOS CREATE MESSAGE
+    "ranking_infos": [1130012873452699729, 1135572152402329721],
     "rank_roles": {
         "Champions": "1002405009511694347",
         "Diamond": "1002404966247436448",
@@ -213,12 +213,12 @@ async def mod_rank(ctx: lightbulb.Context) -> None:
     await ctx.respond(response_type=hikari.ResponseType.DEFERRED_MESSAGE_CREATE, flags=hikari.MessageFlag.EPHEMERAL)
 
     if not member_id in datas:
-        await ctx.respond(content=f"TRANSLATE {member.mention} not in database")
+        await ctx.respond(content=f"{member.mention} ist nicht in der Datenbank")
         return
     
     data = datas[member_id]
     plats = {"uplay": "PC", "psn": "Playstation", "xbl": "Xbox"}
-    embed = hikari.Embed(title=f"TRANSLATE R6 data of {member}", description=f"TRANSLATE R6 Member : {member.mention} - {member} ({member_id})", color=0x) #DRAGOS
+    embed = hikari.Embed(title=f"R6 Meta Daten von {member}", description=f"R6 Member : {member.mention} - {member} ({member_id})", color=0xffffff)
     embed.add_field(name="Ubisoft ID", value=data[0])
     embed.add_field(name="Ubisoft Username", value=data[4])
     embed.add_field(name="Platform", value=plats[data[6]])
@@ -254,10 +254,10 @@ async def mod_userid(ctx: lightbulb.Context) -> None:
     await auth.close()
 
     if not results:
-        await ctx.respond(content=f"TRANSLATE Not any account found for {username}")
+        await ctx.respond(content=f"Kein Account gefunden für {username}")
         return
 
-    embed = hikari.Embed(title=f"TRANSLATE R6 account found for {username}", description=f"{len(results)} account{'s' if len(results)>1 else ''} found.", color=0x) #DRAGOS
+    embed = hikari.Embed(title=f"R6 Account gefunden für {username}", description=f"{len(results)} account{'s' if len(results)>1 else ''} gefunden.", color=0xffffff) #DRAGOS
     for key, value in results.items():
         display = None
         found_id = None
@@ -267,17 +267,17 @@ async def mod_userid(ctx: lightbulb.Context) -> None:
                 break
         
         if not found_id:
-            embed.add_field(name=f"{plats[key]} - {username} ({value})", value="TRANSLATE Not found in database", inline=True)
+            embed.add_field(name=f"{plats[key]} - {username} ({value})", value="Nicht gefunden in der Datenbank", inline=True)
         else:
-            embed.add_field(name=f"{plats[key]} - {username} ({value})", value=f"TRANSLATE Account of <@{found_id}> ({found_id}).", inline=True)
+            embed.add_field(name=f"{plats[key]} - {username} ({value})", value=f"Account von <@{found_id}> ({found_id}).", inline=True)
 
     await ctx.respond(embed=embed)
 
 
 
 @bot.command()
-@lightbulb.option("username", "Your Ubisoft username")
-@lightbulb.option("platform", "TRANSLATE The platform you're playing on", choices=["PC", "Playstation", "Xbox"])
+@lightbulb.option("username", "Dein Ubisoft Username")
+@lightbulb.option("platform", "Auf welcher Platform du spielst", choices=["PC", "Playstation", "Xbox"])
 @lightbulb.command("get-rank", "Get your Rank")
 @lightbulb.implements(lightbulb.SlashCommand)
 async def create_rank(ctx: lightbulb.Context) -> None:
@@ -296,7 +296,7 @@ async def create_rank(ctx: lightbulb.Context) -> None:
         player = await auth.get_player(name=ubisoft_name, platform=platform)
         user_id = player.id
     except InvalidRequest:
-        await ctx.respond(content=f"(TRANSLATE Be careful to choose the right platform) Keine Daten zu diesem Ubisoft Account gefunden. Sollte dies ein Fehler sein öffne bitte ein <#963132179813109790>.")
+        await ctx.respond(content=f"(Pass auf das du die richtige Platform ausgewählt hast) Keine Daten zu diesem Ubisoft Account gefunden. Sollte dies ein Fehler sein öffne bitte ein <#963132179813109790>.")
         await auth.close()
         return
     
@@ -307,11 +307,11 @@ async def create_rank(ctx: lightbulb.Context) -> None:
             discord_id = int(acc.id_on_platform)
 
     if not discord_id:
-        await ctx.respond(content=f"TRANSLATE The Discord account wasn't linked on {ubisoft_name}'s profile.")
+        await ctx.respond(content=f"Der Ubisoft Account {ubisoft_name}, hat kein Discord-profil verlinkt.")
         await auth.close()
         return
     elif discord_id != member.id:
-        await ctx.respond(content=f"TRANSLATE The linked Discord account is not your account !")
+        await ctx.respond(content=f"Dein Discord Account ist nicht in {ubisoft_name}'s profil verlinkt.")
         await auth.close()
         return
 
@@ -437,16 +437,16 @@ async def rankembed(ctx: lightbulb.SlashContext) -> None:
             'oder weitergeben. Die einzigen Informationen, die wir speichern und einsehen können, sind: \n\n'
             '```json\n'
             '{\n'
-            '   ubisoft_id": "Deine Ubisoft ID",\n'
-            '   ingame_name": "Dein Ingame Name",\n'
-            '   rank": "Dein Aktueller Rang",\n'
-            '   current_mmr": "Deine Aktuelle MMR anzahl",\n'
-            '   max_mmr": "Die höchste MMR anzahl die du je hattest",\n'
-            '   discord_user_id": "Deine Discord User ID",\n'
+            '   "ubisoft_id": "Deine Ubisoft ID",\n'
+            '   "ingame_name": "Dein Ingame Name",\n'
+            '   "rank": "Dein Aktueller Rang",\n'
+            '   "current_mmr": "Deine Aktuelle MMR anzahl",\n'
+            '   "max_mmr": "Die höchste MMR anzahl die du je hattest",\n'
+            '   "discord_user_id": "Deine Discord User ID",\n'
             '   \n'
             '}\n'
             '```'
-            "TRANSLATE What are the buttons below ?\n\nAdd: Link your ubi account\nRemove: Delete your information from the database\n\nShow: Show your rank as a role\nHide: Don't show your rank as a role\n\nUpdate: Update your current rank"
+            "**Was sind das für Knöpfe?**\n\n**Hinzufügen:** Verlinke deinen Ubisoft Account\n**Entfernen:** Lösche deine Daten aus unserer Datenbank.\n\n**Anzeigen**: Zeige deinen Rang in deinen Rollen an\n**Verstecken:** Verstecke deinen Rang.\n\n**Aktualisieren:** Aktualisiere deinen Rank"
     )
     embed.add_field(
         name="Public Repo",
@@ -456,14 +456,14 @@ async def rankembed(ctx: lightbulb.SlashContext) -> None:
     )
 
     add_rem = bot.rest.build_message_action_row()
-    add_rem.add_interactive_button(components.ButtonStyle.SUCCESS, "add", label="Add")
-    add_rem.add_interactive_button(components.ButtonStyle.DANGER, "remove", label="Remove")
+    add_rem.add_interactive_button(components.ButtonStyle.SUCCESS, "add", label="Hinzufügen")
+    add_rem.add_interactive_button(components.ButtonStyle.DANGER, "remove", label="Entfernen")
     
     show_hide = bot.rest.build_message_action_row()
-    show_hide.add_interactive_button(components.ButtonStyle.DANGER, "show", label="Show")
-    show_hide.add_interactive_button(components.ButtonStyle.DANGER, "hide", label="Hide")
+    show_hide.add_interactive_button(components.ButtonStyle.SECONDARY, "show", label="Anzeigen")
+    show_hide.add_interactive_button(components.ButtonStyle.SECONDARY, "hide", label="Verstecken")
     
-    update = bot.rest.build_message_action_row().add_interactive_button(components.ButtonStyle.SUCCESS, "update", label="Update")
+    update = bot.rest.build_message_action_row().add_interactive_button(components.ButtonStyle.PRIMARY, "update", label="Aktualisieren")
 
     await ctx.get_channel().send(embed=embed, components=[add_rem, show_hide, update])
     await ctx.respond(content=f"Sent !", flags=hikari.MessageFlag.EPHEMERAL)
@@ -490,13 +490,13 @@ async def on_interaction_create(event: hikari.InteractionCreateEvent):
             plats = {"PC": "uplay", "Playstation": "psn", "Xbox": "xbl"}
             try:platform = plats[platform]
             except:
-                await inter.edit_initial_response(content=f"TRANSLATE Please retry writing a correct platform")
+                await inter.edit_initial_response(content=f"Bitte gib eine Korrekte Platform an")
                 return
             try:
                 player = await auth.get_player(name=ubisoft_name, platform=platform)
                 user_id = player.id
             except InvalidRequest:
-                await inter.edit_initial_response(content=f"(TRANSLATE Be careful to choose the right platform) Keine Daten zu diesem Ubisoft Account gefunden. Sollte dies ein Fehler sein öffne bitte ein <#963132179813109790>.")
+                await inter.edit_initial_response(content=f"(Pass auf das du die richtige Platform ausgewählt hast) Keine Daten zu diesem Ubisoft Account gefunden. Sollte dies ein Fehler sein öffne bitte ein <#963132179813109790>.")
                 await auth.close()
                 return
             
@@ -507,11 +507,11 @@ async def on_interaction_create(event: hikari.InteractionCreateEvent):
                     discord_id = int(acc.id_on_platform)
 
             if not discord_id:
-                await inter.edit_initial_response(content=f"TRANSLATE The Discord account wasn't linked on {ubisoft_name}'s profile.")
+                await inter.edit_initial_response(content=f"Der Ubisoft Account {ubisoft_name}, hat kein Discord-profil verlinkt.")
                 await auth.close()
                 return
             elif discord_id != inter.user.id:
-                await inter.edit_initial_response(content=f"TRANSLATE The linked Discord account is not your account !")
+                await inter.edit_initial_response(content=f"Dein Discord Account ist nicht in {ubisoft_name}'s profil verlinkt.")
                 await auth.close()
                 return
 
@@ -537,7 +537,7 @@ async def on_interaction_create(event: hikari.InteractionCreateEvent):
         
         if custom_id == "add":
             if str(inter.user.id) in datas:
-                await inter.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, content=f"TRANSLATE You're already in our database.", flags=hikari.MessageFlag.EPHEMERAL)
+                await inter.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, content=f"Du bist bereits in der Datenbank", flags=hikari.MessageFlag.EPHEMERAL)
                 return
         
             username_row = bot.rest.build_modal_action_row()
@@ -552,7 +552,7 @@ async def on_interaction_create(event: hikari.InteractionCreateEvent):
             await inter.create_initial_response(hikari.ResponseType.DEFERRED_MESSAGE_CREATE, flags=hikari.MessageFlag.EPHEMERAL)
 
             if str(inter.user.id) not in datas:
-                await inter.edit_initial_response(content=f"TRANSLATE You're not in our database.")
+                await inter.edit_initial_response(content=f"Du bist nicht in der Datenbank.")
                 return
 
             for rid in real_ids["rank_roles"].values():
@@ -561,38 +561,38 @@ async def on_interaction_create(event: hikari.InteractionCreateEvent):
             del datas[str(inter.user.id)]
             save_player_datas(datas)
 
-            await inter.edit_initial_response(content=f"TRANSLATE You have been deleted from our database.")
+            await inter.edit_initial_response(content=f"Du wurdest aus der Datenbank entfernt.")
 
         elif custom_id == "show":
             await inter.create_initial_response(hikari.ResponseType.DEFERRED_MESSAGE_CREATE, flags=hikari.MessageFlag.EPHEMERAL)
 
             if str(inter.user.id) not in datas:
-                await inter.edit_initial_response(content=f"TRANSLATE You're not in our database.")
+                await inter.edit_initial_response(content=f"Du bist nicht in der Datenbank.")
                 return
 
             if datas[str(inter.user.id)][5]:
-                await inter.edit_initial_response(content=f"Your rank role is already shown.")
+                await inter.edit_initial_response(content=f"Dein Rang wird bereits Angezeigt.")
                 return
             
             rank = datas[str(inter.user.id)][1]
             role_id = real_ids["rank_roles"][rank.split(" ")[0]]
 
-            await bot.rest.add_role_to_member(guild_id, inter.user, rid)
+            await bot.rest.add_role_to_member(guild_id, inter.user, role_id)
 
             datas[str(inter.user.id)][5] = True
             save_player_datas(datas)
 
-            await inter.edit_initial_response(content=f"TRANSLATE Your rank role has been updated to <@&{role_id}>.")
+            await inter.edit_initial_response(content=f"Dein Rang wurde Aktualisiert. Neuer Rang: <@&{role_id}>.")
 
         elif custom_id == "hide":
             await inter.create_initial_response(hikari.ResponseType.DEFERRED_MESSAGE_CREATE, flags=hikari.MessageFlag.EPHEMERAL)
 
             if str(inter.user.id) not in datas:
-                await inter.edit_initial_response(content=f"TRANSLATE You're not in our database.")
+                await inter.edit_initial_response(content=f"Du bist nicht in der Datenbank.")
                 return
 
             if not datas[str(inter.user.id)][5]:
-                await inter.edit_initial_response(content=f"Your rank role is already hidden.")
+                await inter.edit_initial_response(content=f"Dein Rang ist bereits versteckt.")
                 return
             
             for rid in real_ids["rank_roles"].values():
@@ -601,7 +601,7 @@ async def on_interaction_create(event: hikari.InteractionCreateEvent):
             datas[str(inter.user.id)][5] = False
             save_player_datas(datas)
 
-            await inter.edit_initial_response(content=f"TRANSLATE Your rank role has been removed.")
+            await inter.edit_initial_response(content=f"Dein Rang wurde versteckt.")
         
         elif custom_id == "update":
             
@@ -610,11 +610,11 @@ async def on_interaction_create(event: hikari.InteractionCreateEvent):
             try:
                 user_id = datas[member_id][0]
             except:
-                await inter.edit_initial_response(content=f"TRANSLATE You haven't linked your Ubisoft account : use </lfg:1134870100315492425> or add button !")
+                await inter.edit_initial_response(content=f"Du hast noch keinen Account Hinzugefügt: verwende </lfg:1134870100315492425> oder drücke den Add button!")
                 return
 
             if not datas[member_id][5]:
-                await inter.edit_initial_response(content=f"TRANSLATE You disabled the rank role functionnality. To activate, use the \"Show\" button.")
+                await inter.edit_initial_response(content=f"Du hast deinen rang versteckt. um ihn wieder anzuzeigen, drücke den \"Show\" button.")
                 return
 
             auth = Auth(def_mail, def_pw)
@@ -623,7 +623,7 @@ async def on_interaction_create(event: hikari.InteractionCreateEvent):
             await player.load_ranked_v2()
             rank_name = player.ranked_profile.rank
             if rank_name == datas[member_id][1]:
-                await inter.edit_initial_response(content=f"TRANSLATE You rank doesn't need to be updated.")
+                await inter.edit_initial_response(content=f"Dein Rang muss nicht Aktualisert werden.")
                 return
             
             max_mmr = player.ranked_profile.max_rank_points
@@ -640,7 +640,7 @@ async def on_interaction_create(event: hikari.InteractionCreateEvent):
             datas[4] = player.name
             save_player_datas(datas)
 
-            await inter.edit_initial_response(content=f"TRANSLATE Your rank has been updated to <@&{role_id}>.", user_mentions=True, role_mentions=True)
+            await inter.edit_initial_response(content=f"Dein Rang wurde Aktualisert. Neuer Rang: <@&{role_id}>.", user_mentions=True, role_mentions=True)
 
 
 
