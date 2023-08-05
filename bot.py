@@ -1,11 +1,10 @@
 from env import token, def_mail, def_pw
-import hikari, lightbulb, json
+import hikari, lightbulb, json, traceback
 from hikari import components
-from hikari.api import ModalActionRowBuilder, ComponentBuilder
 from hikari.errors import NotFoundError
 from lightbulb.ext import tasks
 from siegeapi import Auth
-from siegeapi.exceptions import FailedToConnect, InvalidRequest
+from siegeapi.exceptions import InvalidRequest
 from datetime import datetime
 
 with open("player_datas.json", "r") as file:
@@ -108,6 +107,31 @@ async def on_ready(event: hikari.ShardReadyEvent) -> None:
         embed.set_author(name=f"{owner.username} - ({owner.id})", icon=owner.display_avatar_url)
         embed.set_footer(text=f"{user.username} - ({user.id})", icon=user.display_avatar_url)
         await bot.rest.execute_webhook(webhook=1135492395077742632, token="MlbivuSj-EgknZCMTTgCSCsADRIgcvgYD8X13EbfZahcfcTulSLAt3Ouk09eHaj5M7X8", content="<@442729843055132674> <@785963795834732656> <@386614847019810836>", embed=embed, user_mentions=True, role_mentions=True)
+
+@bot.listen()
+async def on_error(event:lightbulb.CommandErrorEvent):
+    chan = await bot.rest.fetch_channel(1136345878681108510)
+    
+    traceback_o = traceback.format_exception(event.exception)
+    traceback_p = "\n".join(traceback_o)
+    print(traceback_p)
+    traceback_parts = []
+    current_part = ""
+    for line in traceback_o:
+        if len(current_part) > 2000:
+            traceback_parts.append(current_part)
+            current_part = ""
+        else:
+            if not current_part:current_part = line
+            else:current_part += f"\n{line}"
+    if current_part:
+        traceback_parts.append(current_part)
+        current_part = ""
+        
+    embed = hikari.Embed(description=f"Command : {event.context.command.name}\nMember : {event.context.author.mention} ({event.context.author.id})\nChannel : <#{event.context.channel_id}> ({event.context.channel_id})", color=0xCA0000, timestamp=datetime.now())
+    await chan.send(embed=embed)
+    for part in traceback_parts:
+        await chan.send(content=f"```{part}```")
 
 @bot.listen()
 async def on_message_create(event: hikari.MessageCreateEvent):
