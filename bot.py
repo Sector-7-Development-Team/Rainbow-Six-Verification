@@ -324,7 +324,12 @@ async def create_rank(ctx: lightbulb.Context) -> None:
         await auth.close()
         return
     
-    payload = await player.load_linked_accounts()
+    try:
+        payload = await player.load_linked_accounts()
+    except InvalidRequest:
+        await ctx.respond(content=f"TRANSLATE No data found. Pleason contact the support to help us correct this bug.")
+        return 
+    
     discord_id = None
     for acc in payload:
         if acc.platform_type == 'discord':
@@ -524,7 +529,12 @@ async def on_interaction_create(event: hikari.InteractionCreateEvent):
                 await auth.close()
                 return
             
-            payload = await player.load_linked_accounts()
+            try:
+                payload = await player.load_linked_accounts()
+            except InvalidRequest:
+                await inter.edit_initial_response(content=f"TRANSLATE No data found. Pleason contact the support to help us correct this bug.")
+                return 
+            
             discord_id = None
             for acc in payload:
                 if acc.platform_type == 'discord':
@@ -567,7 +577,7 @@ async def on_interaction_create(event: hikari.InteractionCreateEvent):
             username_row = bot.rest.build_modal_action_row()
             username_row.add_text_input("username", "Ubisoft username", placeholder="Enter your ubisoft username")
             platform_row = bot.rest.build_modal_action_row()
-            platform_row.add_text_input("platform", "Platform", placeholder='"PC", "Playstation" and "Xbox"', max_length=10)
+            platform_row.add_text_input("platform", "Platform", placeholder='"PC", "Playstation" and "Xbox"', max_length=11)
             
             await inter.create_modal_response(title="Linking your R6 account", custom_id="modal_add", components=[username_row, platform_row])
 
